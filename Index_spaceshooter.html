@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Space Shooter Game</title>
+<style>
+body {
+margin: 0;
+overflow: hidden;
+background-color: #000;
+}
+canvas {
+display: block;
+background-color: #000;
+}
+#controls {
+position: absolute;
+bottom: 20px;
+left: 20px;
+color: white;
+font-family: Arial, sans-serif;
+}
+#restartButton {
+display: none;
+position: absolute;
+top: 50%;
+left: 50%;
+transform: translate(-50%, -50%);
+padding: 10px 20px;
+font-size: 20px;
+cursor: pointer;
+}
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<div id="controls">Tap to shoot!</div>
+<button id="restartButton">Restart Game</button>
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+// Load Assets
+const assets = {
+player: new Image(),
+enemy: new Image(),
+background1: new Image(),
+background2: new Image(),
+background3: new Image()
+};
+
+// Update asset paths to local 'assets' folder
+assets.player.src = 'assets/playerShip1_blue.png'; // Player spaceship
+assets.enemy.src = 'assets/enemyBlack1.png'; // Enemy spaceship
+assets.background1.src = 'assets/black.png'; // Stars layer 1
+assets.background2.src = 'assets/blue.png'; // Stars layer 2
+assets.background3.src = 'assets/darkPurple.png'; // Nebula layer
+
+// Parallax Background
+const backgrounds = [
+{ image: assets.background1, speed: 1, y: 0 },
+{ image: assets.background2, speed: 2, y: 0 },
+{ image: assets.background3, speed: 3, y: 0 }
+];
+
+// Player
+const player = {
+x: canvas.width / 2 - 25,
+y: canvas.height - 100,
+width: 50,
+height: 50,
+speed: 5,
+bullets: [],
+fireRate: 300,
+lastShot: 0,
+health: 100
+};
+
+// Enemies
+const enemies = [];
+let enemySpeed = 2;
+let enemySpawnRate = 1000;
+
+// Game State
+let score = 0;
+let level = 1;
+let gameOver = false;
+
+// Touch Controls
+let touchX = player.x;
+
+// Restart Game
+const restartButton = document.getElementById('restartButton');
+restartButton.addEventListener('click', () => {
+resetGame();
+restartButton.style.display = 'none';
+gameOver = false;
+gameLoop();
+});
+
+function resetGame() {
+player.x = canvas.width / 2 - 25;
+player.y = canvas.height - 100;
+player.health = 100;
+player.fireRate = 300;
+player.bullets = [];
+enemies.length = 0;
+score = 0;
+level = 1;
+enemySpeed = 2;
+enemySpawnRate = 1000;
+}
+
+// Draw Parallax Background
+function drawBackground() {
+backgrounds.forEach((bg) => {
+ctx.drawImage(bg.image, 0, bg.y, canvas.width, canvas.height);
+ctx.drawImage(bg.image, 0, bg.y - canvas.height, canvas.width, canvas.height);
+// Update background position
+bg.y += bg.speed;
+if (bg.y >= canvas.height) {
+bg.y = 0;
+}
+});
+}
+
+// Draw Player
+function drawPlayer() {
+ctx.drawImage(assets.player, player.x, player.y, player.width, player.height);
+}
+
+// Draw Bullets
+function drawBullets() {
+ctx.fillStyle = 'yellow';
+player.bullets.forEach((bullet, index) => {
+bullet.y -= bullet.speed;
+ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
+// Remove bullets that go off-screen
+if (bullet.y + bullet.height < 0) {
+player.bullets.splice(index, 1);
+}
+});
+}
+
+// Draw Enemies
+function drawEnemies() {
+enemies.forEach((enemy, index) => {
+enemy.y += enemySpeed;
+ctx.drawImage(assets.enemy, enemy.x, enemy.y, enemy.width, enemy.height);
+// Remove enemies that go off-screen
+if (enemy.y > canvas.height) {
+enemies.splice(index, 1);
+player.health -= 10;
+if (player.health <= 0) {
+gameOver = true;
+}
+}
+});
+}
+
+// Check Collisions
+function checkCollisions() {
+player.bullets.forEach((bullet, bulletIndex) => {
+enemies.forEach((enemy, enemyIndex) => {
+if (
+bullet.x < enemy.x + enemy.width &&
+bullet.x + bullet.width > enemy.x &&
+bullet.y < enemy.y + enemy.height &&
+bullet.y + bullet.height > enemy.y
+) {
+// Remove bullet and enemy on collision
+player.bullets.splice(bulletIndex, 1);
+enemies.splice(enemyIndex, 1);
+score += 10;
+}
+});
+});
+}
+
+// Game Loop
+function gameLoop() {
+if (gameOver) {
+ctx.fillStyle = 'white
